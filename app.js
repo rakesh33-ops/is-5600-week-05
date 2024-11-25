@@ -1,24 +1,46 @@
-const express = require('express')
-const api = require('./api')
-const middleware = require('./middleware')
-const bodyParser = require('body-parser')
+const express = require('express');
+const mongoose = require('mongoose');
+const dotenv = require('dotenv');
+const cors = require('cors');
+const bodyParser = require('body-parser');
+const path = require('path');
 
+// Initialize dotenv for environment variables
+dotenv.config();
 
-// Set the port
-const port = process.env.PORT || 3000
-// Boot the app
-const app = express()
-// Register the public directory
-app.use(express.static(__dirname + '/public'));
-// register the routes
-app.use(bodyParser.json())
-app.use(middleware.cors)
-app.get('/', api.handleRoot)
-app.get('/products', api.listProducts)
-app.get('/products/:id', api.getProduct)
-app.put('/products/:id', api.editProduct)
-app.delete('/products/:id', api.deleteProduct)
-app.post('/products', api.createProduct)
-// Boot the server
-app.listen(port, () => console.log(`Server listening on port ${port}`))
+// Initialize express app
+const app = express();
 
+// Middleware to parse incoming requests
+app.use(cors());  // Enable Cross-Origin Requests (if needed)
+app.use(bodyParser.json());  // Parse JSON bodies
+
+// Static folder to serve images
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
+// MongoDB connection
+mongoose.connect(
+  process.env.MONGODB_URI || 'mongodb://root:example@localhost:27017/?authSource=admin',
+  { useNewUrlParser: true, useUnifiedTopology: true }
+)
+.then(() => {
+  console.log('Connected to MongoDB');
+})
+.catch((err) => {
+  console.log('Error connecting to MongoDB:', err);
+});
+
+// Import routes
+const apiRoutes = require('./api');
+app.use('/api', apiRoutes);
+
+// Root route for checking server status
+app.get('/', (req, res) => {
+  res.send('API is working!');
+});
+
+// Start server
+const port = process.env.PORT || 5000;
+app.listen(port, () => {
+  console.log(`Server running on port ${port}`);
+});
